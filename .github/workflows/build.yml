@@ -2,7 +2,7 @@ on:
   push:
     paths:
       - 'laravel-test-runner/Dockerfile'
-    branches: [main]
+    branches: [master, main]
   workflow_dispatch:
 
 name: Build Laravel Test Runner
