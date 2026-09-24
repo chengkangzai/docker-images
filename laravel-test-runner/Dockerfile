@@ -1,10 +1,14 @@
-FROM kirschbaumdevelopment/laravel-test-runner:8.4
+# One Dockerfile for every PHP version: the build workflow passes PHP_VERSION from its
+# matrix and tags the image with it, so 8.4 and 8.5 stay identical apart from PHP.
+ARG PHP_VERSION=8.4
+FROM kirschbaumdevelopment/laravel-test-runner:${PHP_VERSION}
+ARG PHP_VERSION
 
 # pcov backs Pest's test impact analysis (--tia): without a coverage driver Pest
 # skips TIA silently and runs the whole suite. Baked in rather than apt-installed
 # per job so CI does not depend on a Debian mirror on every shard.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends php8.4-imagick php8.4-pcov ffmpeg \
+    && apt-get install -y --no-install-recommends php${PHP_VERSION}-imagick php${PHP_VERSION}-pcov ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # Chromium's shared-library dependencies for Pest browser tests — the OS packages
