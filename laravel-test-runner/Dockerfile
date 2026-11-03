@@ -37,3 +37,25 @@ RUN npx --yes playwright@1.56.1 install-deps chromium \
 # CVE-2026-45793 / GHSA-f9f8-rm49-7jv2: Composer <2.9.8 leaks GitHub Actions
 # tokens to CI logs. Upgrade above the Kirschbaum base (2.9.5).
 RUN composer self-update --2 --no-interaction
+
+# GitHub CLI for jobs that drive GitHub from inside this container — e.g. Pixalink's
+# Sentry Fix workflow, where Claude runs `gh issue view/comment`, `gh pr create` and
+# `gh run watch`. The base image has none, so a run could finish "successfully" while
+# being unable to read or comment on its own issue.
+#
+# From the pinned release tarball, verified against GitHub's published checksums. Not the
+# cli.github.com apt repo: it only serves the latest release, so a version pin there breaks
+# the build the day upstream ships. TARGETARCH comes from buildx (amd64 / arm64 legs).
+ARG GH_CLI_VERSION=2.102.0
+ARG TARGETARCH
+RUN set -eux; \
+    arch="${TARGETARCH:-$(dpkg --print-architecture)}"; \
+    tarball="gh_${GH_CLI_VERSION}_linux_${arch}.tar.gz"; \
+    cd /tmp; \
+    curl -fsSLO "https://github.com/cli/cli/releases/download/v${GH_CLI_VERSION}/${tarball}"; \
+    curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_CLI_VERSION}/gh_${GH_CLI_VERSION}_checksums.txt" \
+        | grep " ${tarball}$" | sha256sum -c -; \
+    tar -xzf "${tarball}"; \
+    install -m 0755 "gh_${GH_CLI_VERSION}_linux_${arch}/bin/gh" /usr/local/bin/gh; \
+    rm -rf "/tmp/${tarball}" "/tmp/gh_${GH_CLI_VERSION}_linux_${arch}"; \
+    gh --version
